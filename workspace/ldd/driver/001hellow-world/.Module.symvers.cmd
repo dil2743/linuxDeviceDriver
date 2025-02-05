@@ -1,0 +1,1 @@
+savedcmd_/home/hkd/deviceDriverDevelopment/workspace/ldd/driver/001hellow-world/Module.symvers :=  scripts/mod/modpost -M -m -a      -o /home/hkd/deviceDriverDevelopment/workspace/ldd/driver/001hellow-world/Module.symvers -T /home/hkd/deviceDriverDevelopment/workspace/ldd/driver/001hellow-world/modules.order -i Module.symvers -e 

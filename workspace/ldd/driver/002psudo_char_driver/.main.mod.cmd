@@ -1,0 +1,1 @@
+savedcmd_/home/hkd/deviceDriverDevelopment/workspace/ldd/driver/002psudo_char_driver/main.mod := printf '%s\n'   main.o | awk '!x[$$0]++ { print("/home/hkd/deviceDriverDevelopment/workspace/ldd/driver/002psudo_char_driver/"$$0) }' > /home/hkd/deviceDriverDevelopment/workspace/ldd/driver/002psudo_char_driver/main.mod

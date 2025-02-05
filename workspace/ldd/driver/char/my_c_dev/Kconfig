@@ -1,0 +1,5 @@
+menu "my custom C module!"
+	config CUSTOM_HELLOWORLD
+		tristate "hello world module support to inline kernel"
+		default m
+endmenu
