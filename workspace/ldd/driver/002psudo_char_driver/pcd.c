@@ -76,7 +76,7 @@ ssize_t pcd_write(struct file *flip, const char __user *buff, size_t count, loff
                 count = DEV_MEM_SIZE - *f_pos;
 
 	if(!count){
-		pr_error("No Memory Left on device!!!\n");
+		pr_err("No Memory Left on device!!!\n");
 		return -ENOMEM;
 	}
         /*2. copy count number of bytes from device memory to user buffer*/
