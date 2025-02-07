@@ -1,1 +1,0 @@
-savedcmd_/home/hkd/deviceDriverDevelopment/workspace/ldd/driver/002psudo_char_driver/Module.symvers :=  scripts/mod/modpost -M -m -a      -o /home/hkd/deviceDriverDevelopment/workspace/ldd/driver/002psudo_char_driver/Module.symvers -T /home/hkd/deviceDriverDevelopment/workspace/ldd/driver/002psudo_char_driver/modules.order -i Module.symvers -e 

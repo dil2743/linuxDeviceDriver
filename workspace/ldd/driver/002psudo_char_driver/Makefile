@@ -3,7 +3,7 @@ ARCH=arm
 CROSS_COMPILE=arm-linux-gnueabihf-
 KER_DIR=~/deviceDriverDevelopment/workspace/ldd/source/linux-6.1.83-ti-rt-r37/
 HOST_KER_DIR= /lib/modules/$(shell uname -r)/build/
-obj-m := main.o
+obj-m := pcd.o
 
 all:
 	sudo make ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(KER_DIR)  M=$(PWD) modules
