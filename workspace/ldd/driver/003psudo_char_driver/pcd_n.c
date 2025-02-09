@@ -13,13 +13,13 @@
 #undef pr_fmt
 #define pr_fmt(fmt) "%s:" fmt,__func__
 
-/* psedo device's memory */
+/* pseudo device's memory */
 char device_buffer_pcdev1[MEM_SIZE_MAX_DEV_PCDEV1];
 char device_buffer_pcdev2[MEM_SIZE_MAX_DEV_PCDEV2];
 char device_buffer_pcdev3[MEM_SIZE_MAX_DEV_PCDEV3];
 char device_buffer_pcdev4[MEM_SIZE_MAX_DEV_PCDEV4];
 
-/* device private data strucutre */
+/* device private data structure */
 struct pcdev_private_data{
 	char *buffer;
 	unsigned size;
@@ -28,7 +28,7 @@ struct pcdev_private_data{
 	struct cdev cdev;
 };
 
-/* drvier prive data structure */
+/* driver private data structure */
 struct pcdrv_private_data{
 	int total_devices;
 	dev_t device_number;
@@ -76,6 +76,7 @@ int pcd_open(struct inode *inode, struct file *flip);
 
 
 loff_t pcd_lseek(struct file *filp, loff_t offset , int whence){
+#ifdef DEBUG	
 	pr_info("lseek requested \n");
 	loff_t tmp;
 
@@ -106,8 +107,11 @@ loff_t pcd_lseek(struct file *filp, loff_t offset , int whence){
 	}
 	pr_info("Now value of the file position is %lld\n",filp->f_pos);
 	return filp->f_pos;
+#endif
+	return 0;
 }
 ssize_t pcd_read(struct file *filp, char __user *buff, size_t count, loff_t *f_pos){
+#ifdef DEBUG	
 	pr_info("read requested %zu bytes\n",count);
 	pr_info("Current file position %lld\n", *f_pos);
 	/*1. check user requested count value as the device has limited storage */
@@ -119,15 +123,17 @@ ssize_t pcd_read(struct file *filp, char __user *buff, size_t count, loff_t *f_p
 	/*3. update the f_pos position pointer */
 	*f_pos += count;
 	
-	pr_info("Number of bytes succeffult read = %zu, \n", count);
-	pr_info("File postion udated = %lld\n",*f_pos);
-	/*4. return number of bytes succeffuly read or error code */
-	/*5. if f_ops at EOF, then rerurn 0 */
+	pr_info("Number of bytes successfully read = %zu, \n", count);
+	pr_info("File position updated = %lld\n",*f_pos);
+	/*4. return number of bytes successfully read or error code */
+	/*5. if f_ops at EOF, then return 0 */
 	return count;
+#endif
+	return 0;
 }
 
 ssize_t pcd_write(struct file *flip, const char __user *buff, size_t count, loff_t *f_pos){
-	
+#ifdef	DEBUG
 	pr_info("write requested %zu bytes\n",count);
         pr_info("Current file position %lld\n", *f_pos);
 
@@ -145,19 +151,21 @@ ssize_t pcd_write(struct file *flip, const char __user *buff, size_t count, loff
         /*3. update the f_pos position pointer */
         *f_pos += count;
 
-        pr_info("Number of bytes succeffult written = %zu, \n", count);
-        pr_info("File postion udated = %lld\n",*f_pos);
+        pr_info("Number of bytes successfully written = %zu, \n", count);
+        pr_info("File position updated = %lld\n",*f_pos);
         /*4. return number of bytes successfully written or error code */
-        /*5. if f_ops at EOF, then rerurn 0 */
+        /*5. if f_ops at EOF, then return 0 */
         return count;
+#endif
+	return 0;
 }
 
 int pcd_open(struct inode *inode, struct file *flip){
-	pr_info("Opend successfull\n");
+	pr_info("Opened successfully\n");
 	return 0;
 }
 int pcd_release (struct inode *inode, struct file *flip){
-	pr_info("release successfull \n");
+	pr_info("release successful \n");
 	return 0;
 }
 
@@ -211,7 +219,7 @@ static int __init pcd_driver_init(void){
 		
 		}
 	}
-	pr_info("Mdule init successfull \n");
+	pr_info("Module init successful \n");
 	return 0;	
 cdev_del:
 class_del:
@@ -232,10 +240,8 @@ static void __exit pcd_driver_cleanup(void){
 	int i;
 
 	for(i=0; i<NO_OF_DEVICES; i++){
-
 		device_destroy(pcdrv_data.class_pcd, pcdrv_data.device_number+i);
 		cdev_del(&pcdrv_data.pcdev_data[i].cdev);
-		
 	}
 	
 	class_destroy(pcdrv_data.class_pcd);
@@ -252,4 +258,4 @@ module_exit(pcd_driver_cleanup);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("DLSHAD");
-MODULE_DESCRIPTION("A PSUDO CHAR Driver");
+MODULE_DESCRIPTION("A PSEUDO CHAR Driver");
