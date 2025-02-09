@@ -193,8 +193,8 @@ int pcd_open(struct inode *inode, struct file *filp){
 	filp->private_data = pcdev_data;
 
 	/* check permission */
-	ret = check_add_overflow(pcdev_data->perm, filp->f_mode);
-	
+	ret = check_permission(pcdev_data->perm, filp->f_mode);
+
 	if(ret == 0 ){
 		pr_info("Opened successfully\n");
 	}
