@@ -38,31 +38,31 @@ struct pcdrv_private_data{
 };	
 
 struct pcdrv_private_data pcdrv_data = {
-	.total_devices = NO_OF_DEVICES;
+	.total_devices = NO_OF_DEVICES,
 	.pcdev_data = { 
 		[0] = {
-			.buffer = device_buffer_pcdev1;
-			.size = MEM_SIZE_MAX_PCDEV1;
-			.serial_number = PCDDEVE1XYZ123;	
-			.perm = 0x1; /* RD */
+			.buffer = device_buffer_pcdev1,
+			.size = MEM_SIZE_MAX_DEV_PCDEV1,
+			.serial_number = "PCDDEVE1XYZ123",	
+			.perm = 0x1, /* RD */
 		},
 		[1] = {
-			.buffer = device_buffer_pcdev2;
-			.size = MEM_SIZE_MAX_PCDEV2;
-			.serial_number = PCDDEVE2XYZ123;	
-			.perm = 0x10; /* WR */
+			.buffer = device_buffer_pcdev2,
+			.size = MEM_SIZE_MAX_DEV_PCDEV2,
+			.serial_number = "PCDDEVE2XYZ123",	
+			.perm = 0x10, /* WR */
 		},
 		[2] = {
-			.buffer = device_buffer_pcdev1;
-			.size = MEM_SIZE_MAX_PCDEV3;
-			.serial_number = PCDDEVE3XYZ123;	
-			.perm = 0x11; /* RDWR */
+			.buffer = device_buffer_pcdev3,
+			.size = MEM_SIZE_MAX_DEV_PCDEV3,
+			.serial_number = "PCDDEVE3XYZ123",	
+			.perm = 0x11, /* RDWR */
 		},
 		[3] = {
-			.buffer = device_buffer_pcdev1;
-			.size = MEM_SIZE_MAX_PCDEV4;
-			.serial_number = PCDDEVE4XYZ123;	
-			.perm = 0x11; /* RDWR */
+			.buffer = device_buffer_pcdev4,
+			.size = MEM_SIZE_MAX_DEV_PCDEV4,
+			.serial_number = "PCDDEVE4XYZ123",	
+			.perm = 0x11, /* RDWR */
 		},
 	}
 };
@@ -182,10 +182,10 @@ static int __init pcd_driver_init(void){
 		goto out;
 	
 	/*lets create a device file */
-	pcdev_data.class_pcd = class_create("pcd_class");
+	pcdrv_data.class_pcd = class_create("pcd_class");
 	if(IS_ERR(pcdrv_data.class_pcd)){
 		pr_err("Class creation failed\n");
-		ret = PTR_ERR(pcdev_data.class_pcd);
+		ret = PTR_ERR(pcdrv_data.class_pcd);
 		goto unreg_chrdev;
 	}
 
@@ -198,12 +198,12 @@ static int __init pcd_driver_init(void){
 		cdev_init(&pcdrv_data.pcdev_data[i].cdev, &pcd_fops);	
 	
 		/*register a device with VFS */	
-		pcdrv_data.pcd_data[i].owner = THIS_MODULE;
+		pcdrv_data.pcdev_data[i].cdev.owner = THIS_MODULE;
 		ret = cdev_add(&pcdrv_data.pcdev_data[i].cdev, pcdrv_data.device_number+i, 1);
 		if(ret<0)
 			goto cdev_del;
 		/*5. populate sysfs with device information */
-		pcdrv_data.device_pcd = device_create(pcdrv_data.class_pcd, NULL, drv_data.device_number+i, NULL, "pcdev-%d",i+1);
+		pcdrv_data.device_pcd = device_create(pcdrv_data.class_pcd, NULL, pcdrv_data.device_number+i, NULL, "pcdev-%d",i+1);
 		if(IS_ERR(pcdrv_data.device_pcd)){
 			pr_err("Device creation failed\n");
 			ret = PTR_ERR(pcdrv_data.device_pcd);
@@ -222,7 +222,7 @@ class_del:
 	class_destroy(pcdrv_data.class_pcd);
 
 unreg_chrdev:
-	unregister_chrdev_region(pcdev_data.device_number,NO_OF_DEVICES);
+	unregister_chrdev_region(pcdrv_data.device_number,NO_OF_DEVICES);
 out:
 	pr_err("device insertion failed\n");
 	return ret;
@@ -239,7 +239,7 @@ static void __exit pcd_driver_cleanup(void){
 	}
 	
 	class_destroy(pcdrv_data.class_pcd);
-	unregister_chrdev_region(pcdrv_data.device_number. NO_OF_DEVICES);
+	unregister_chrdev_region(pcdrv_data.device_number, NO_OF_DEVICES);
 
 	pr_info("Module unloaded\n");
 }
