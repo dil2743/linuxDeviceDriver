@@ -11,6 +11,7 @@
 #define MEM_SIZE_MAX_DEV_PCDEV3 1024
 #define MEM_SIZE_MAX_DEV_PCDEV4 512
 #undef pr_fmt
+
 #define pr_fmt(fmt) "%s:" fmt,__func__
 
 /* pseudo device's memory */
@@ -63,43 +64,43 @@ struct pcdrv_private_data pcdrv_data = {
 			.size = MEM_SIZE_MAX_DEV_PCDEV4,
 			.serial_number = "PCDDEVE4XYZ123",	
 			.perm = 0x11, /* RDWR */
-		},
+		}
 	}
 };
 
 
-int pcd_release (struct inode *inode, struct file *flip);
+int pcd_release (struct inode *inode, struct file *filp);
 loff_t pcd_lseek(struct file *filp, loff_t offset , int whence);
 ssize_t pcd_read(struct file *filp, char __user *buff, size_t count, loff_t *f_pos);
-ssize_t pcd_write(struct file *flip, const char __user *buff, size_t count, loff_t *f_pos);
-int pcd_open(struct inode *inode, struct file *flip);
+ssize_t pcd_write(struct file *filp, const char __user *buff, size_t count, loff_t *f_pos);
+int pcd_open(struct inode *inode, struct file *filp);
 
 
 loff_t pcd_lseek(struct file *filp, loff_t offset , int whence){
-#ifdef DEBUG	
 	pr_info("lseek requested \n");
 	loff_t tmp;
-
+	struct pcdev_private_data *pcdev_data = (struct pcdev_private_data *)filp->private_data;
+	int max_size = pcdev_data->size;
 	
 	pr_info("current file pointer is at %lld\n",filp->f_pos);
 	switch(whence){
 	
 		case SEEK_SET:
-			if((offset > DEV_MEM_SIZE) || (offset < 0))
+			if((offset > max_size) || (offset < 0))
 				return -EINVAL;
 			filp->f_pos = offset;
 			break;
 		case SEEK_CUR:
 			tmp = (filp->f_pos + offset);
-			if( tmp > DEV_MEM_SIZE ||  tmp < 0 )
+			if( tmp > max_size ||  tmp < 0 )
 				return -EINVAL;
 			filp->f_pos += offset;
 			break;
 		case SEEK_END:
-			tmp = DEV_MEM_SIZE + offset;
-			if(tmp > DEV_MEM_SIZE || tmp <0 )
+			tmp = max_size + offset;
+			if(tmp > max_size || tmp <0 )
 				return -EINVAL;
-			filp->f_pos = DEV_MEM_SIZE + offset; 
+			filp->f_pos = max_size + offset; 
 			break;
 		default:
 			return -EINVAL;
@@ -107,18 +108,19 @@ loff_t pcd_lseek(struct file *filp, loff_t offset , int whence){
 	}
 	pr_info("Now value of the file position is %lld\n",filp->f_pos);
 	return filp->f_pos;
-#endif
-	return 0;
 }
 ssize_t pcd_read(struct file *filp, char __user *buff, size_t count, loff_t *f_pos){
-#ifdef DEBUG	
+
+	struct pcdev_private_data *pcdev_data = (struct pcdev_private_data *)filp->private_data;
+	int max_size = pcdev_data->size;
+
 	pr_info("read requested %zu bytes\n",count);
 	pr_info("Current file position %lld\n", *f_pos);
 	/*1. check user requested count value as the device has limited storage */
-	if((*f_pos + count) > DEV_MEM_SIZE)
-		count = DEV_MEM_SIZE - *f_pos;
+	if((*f_pos + count) > max_size)
+		count = max_size - *f_pos;
 	/*2. copy count number of bytes from device memory to user buffer*/
-	if((copy_to_user(buff, &device_buffer[*f_pos], count)))
+	if(copy_to_user(buff, pcdev_data->buffer + (*f_pos), count))
 		return -EFAULT;
 	/*3. update the f_pos position pointer */
 	*f_pos += count;
@@ -128,25 +130,24 @@ ssize_t pcd_read(struct file *filp, char __user *buff, size_t count, loff_t *f_p
 	/*4. return number of bytes successfully read or error code */
 	/*5. if f_ops at EOF, then return 0 */
 	return count;
-#endif
-	return 0;
 }
+ssize_t pcd_write(struct file *filp, const char __user *buff, size_t count, loff_t *f_pos){
+	struct pcdev_private_data *pcdev_data = (struct pcdev_private_data *)filp->private_data;
+	int max_size = pcdev_data->size;
 
-ssize_t pcd_write(struct file *flip, const char __user *buff, size_t count, loff_t *f_pos){
-#ifdef	DEBUG
 	pr_info("write requested %zu bytes\n",count);
         pr_info("Current file position %lld\n", *f_pos);
 
         /*1. check user requested count value as the device has limited storage */
-        if((*f_pos + count) > DEV_MEM_SIZE)
-                count = DEV_MEM_SIZE - *f_pos;
+        if((*f_pos + count) > max_size)
+                count = max_size - *f_pos;
 
 	if(!count){
 		pr_err("No Memory Left on device!!!\n");
 		return -ENOMEM;
 	}
         /*2. copy count number of bytes from device memory to user buffer*/
-        if(copy_from_user(&device_buffer[*f_pos], buff, count))
+        if(copy_from_user(pcdev_data->buffer + (*f_pos), buff, count))
                 return -EFAULT;
         /*3. update the f_pos position pointer */
         *f_pos += count;
@@ -156,18 +157,53 @@ ssize_t pcd_write(struct file *flip, const char __user *buff, size_t count, loff
         /*4. return number of bytes successfully written or error code */
         /*5. if f_ops at EOF, then return 0 */
         return count;
-#endif
-	return 0;
 }
+int pcd_open(struct inode *inode, struct file *filp){
+	int ret;
+	struct pcdev_private_data *pcdev_data;
+	
+	/* find out which device tries to open the file*/
+	int minor_n = MINOR(inode->i_rdev);
+	pr_info("minor access = %d\n",minor_n);
 
-int pcd_open(struct inode *inode, struct file *flip){
+	/* get the device's private data structure */
+	pcdev_data = container_of(inode->i_cdev, struct pcdev_private_data, cdev);
+	/* to supply the private data to other methods of the driver  */
+	filp->private_data = pcdev_data;
+
+	/* check permission */
+	if((filp->f_mode & FMODE_READ) && (pcdev_data->perm & RDONLY)){
+		/* application requested read permission */
+		if((filp->f_mode & FMODE_WRITE) && (pcdev_data->perm & WRONLY)){
+			/* application requested write permission */
+			pr_info("Device opened with read/write permission\n");
+		}else if(!(filp->f_mode & FMODE_WRITE) && (pcdev_data->perm & RDONLY)){
+			pr_info("Device opened with read permission\n");
+		}else{
+			pr_info("Device has no permission\n");
+			ret = -EPERM;
+			goto out;
+		}
+	}else if((filp->f_mode & FMODE_WRITE) && (pcdev_data->perm & WRONLY)){
+		/* application requested write permission */
+		pr_info("Device opened with write permission\n");
+	}else{
+		pr_info("Device has no permission\n");
+		ret = -EPERM;
+		goto out;
+	}
+
+
+
 	pr_info("Opened successfully\n");
+
 	return 0;
 }
-int pcd_release (struct inode *inode, struct file *flip){
+int pcd_release (struct inode *inode, struct file *filp){
 	pr_info("release successful \n");
 	return 0;
 }
+
 
 struct file_operations pcd_fops = {
 	.open = pcd_open,
