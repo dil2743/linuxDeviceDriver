@@ -249,7 +249,7 @@ static int __init pcd_platform_device_init(void){
 	return 0;
 }
 
-static void __exit pcd_platform_driver_cleanup(void) {
+static void __exit pcd_platform_device_cleanup(void) {
 	platform_driver_unregister(&pcd_platform_driver);
 	pr_info("pcd platform Cleanup completed");
 }
@@ -279,8 +279,7 @@ static void __exit pcd_driver_cleanup(void){
 
 
 module_init(pcd_platform_device_init);
-module_exit(pcd_platform_device_cleanup;
-
+module_exit(pcd_platform_device_cleanup);
 
 
 MODULE_LICENSE("GPL");
